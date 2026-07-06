@@ -1,0 +1,72 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function callerProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isOwnCitizenComplaint() {
+      return resource.data.citizenId == request.auth.uid;
+    }
+
+    function isMatchingOfficer() {
+      return callerProfile().role == "officer" &&
+        callerProfile().department == resource.data.ai.department &&
+        callerProfile().constituency == resource.data.location.ward;
+    }
+
+    function isMatchingMLA() {
+      return callerProfile().role == "mla" &&
+        callerProfile().constituency == resource.data.location.ward;
+    }
+
+    function isMatchingMP() {
+      return callerProfile().role == "mp" &&
+        callerProfile().constituency == resource.data.location.constituencyMP;
+    }
+
+    function isMatchingDeptHead() {
+      return callerProfile().role == "department_head" &&
+        callerProfile().department == resource.data.ai.department &&
+        callerProfile().constituency == resource.data.location.constituencyMP;
+    }
+
+    function coreFieldsUnchanged() {
+      return request.resource.data.citizenId == resource.data.citizenId &&
+        request.resource.data.rawText == resource.data.rawText &&
+        request.resource.data.ai == resource.data.ai;
+    }
+
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update, delete: if false;
+    }
+
+    match /complaints/{complaintId} {
+      allow create: if request.auth != null &&
+        request.resource.data.citizenId == request.auth.uid;
+
+      allow read: if request.auth != null &&
+        (isOwnCitizenComplaint() || isMatchingOfficer() || isMatchingDeptHead() ||
+          isMatchingMLA() || isMatchingMP());
+
+      allow update: if request.auth != null && coreFieldsUnchanged() && (
+        (isMatchingOfficer() &&
+          request.resource.data.status in
+            ["Acknowledged", "In Progress", "Escalated", "Pending Citizen Confirmation"]) ||
+        (isOwnCitizenComplaint() &&
+          request.resource.data.status in ["Closed", "Reopened"])
+      );
+
+      allow delete: if false;
+    }
+
+    match /dashboardCache/{cacheId} {
+      allow read, write: if request.auth != null &&
+        callerProfile().role in ["mla", "mp"];
+      allow delete: if false;
+    }
+  }
+}
