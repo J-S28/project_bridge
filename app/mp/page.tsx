@@ -12,6 +12,7 @@ import { ComplaintListSection } from "@/components/ComplaintListSection";
 import { PriorityRankingPanel } from "@/components/PriorityRankingPanel";
 import { ReportCountBadge } from "@/components/ReportCountBadge";
 import { HotspotMap } from "@/components/HotspotMap";
+import { PriorityHeatmap } from "@/components/PriorityHeatmap";
 import { useAIInsight } from "@/lib/useAIInsight";
 import { wardsInMPConstituency } from "@/lib/wards";
 import { computeEscalationLevel } from "@/lib/escalation";
@@ -140,6 +141,18 @@ function MpDashboardContent() {
             Demand hotspots
           </h2>
           <HotspotMap complaints={complaints} wards={wards} />
+        </div>
+
+        <div className="mt-6">
+          <h2 className="mb-2 text-sm font-medium text-neutral-500">
+            Priority heatmap (ward-wise)
+          </h2>
+          <PriorityHeatmap
+            complaints={complaints}
+            groups={wards}
+            groupLabel="Wards"
+            groupOf={(c) => c.location.ward}
+          />
         </div>
 
         <div className="mt-6">

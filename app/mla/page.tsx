@@ -10,7 +10,9 @@ import { DepartmentBreakdownChart } from "@/components/DepartmentBreakdownChart"
 import { EscalatedSection } from "@/components/EscalatedSection";
 import { ComplaintListSection } from "@/components/ComplaintListSection";
 import { PriorityRankingPanel } from "@/components/PriorityRankingPanel";
+import { PriorityHeatmap } from "@/components/PriorityHeatmap";
 import { useAIInsight } from "@/lib/useAIInsight";
+import { DEPARTMENTS } from "@/lib/departments";
 import type { Complaint } from "@/lib/types";
 
 function MlaDashboardContent() {
@@ -84,6 +86,30 @@ function MlaDashboardContent() {
           <div className="mt-2">
             <DepartmentBreakdownChart complaints={complaints} />
           </div>
+        </div>
+
+        <div className="mt-6">
+          <h2 className="mb-2 text-sm font-medium text-neutral-500">
+            Priority heatmap (ward-wise)
+          </h2>
+          <PriorityHeatmap
+            complaints={complaints}
+            groups={appUser?.constituency ? [appUser.constituency] : []}
+            groupLabel="Ward"
+            groupOf={(c) => c.location.ward}
+          />
+        </div>
+
+        <div className="mt-6">
+          <h2 className="mb-2 text-sm font-medium text-neutral-500">
+            Priority heatmap (department-wise)
+          </h2>
+          <PriorityHeatmap
+            complaints={complaints}
+            groups={DEPARTMENTS}
+            groupLabel="Departments"
+            groupOf={(c) => c.ai.department}
+          />
         </div>
 
         <div className="mt-6">
