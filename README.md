@@ -101,15 +101,19 @@ Deployed on **Vercel**, not Firebase App Hosting — App Hosting requires the pa
 
 ## What's explicitly cut (roadmap, not built)
 
-Named here on purpose — scoped honesty was a deliberate choice, not an oversight:
+Named here on purpose — scoped honesty was a deliberate choice, not an oversight. Split into two kinds of "not built": things that just need more dev time (free), and things that need an actual budget (paid third-party infra).
 
+**Roadmap — buildable later, no budget needed:**
 - **Full multilingual translation** (Cloud Translation API) — voice input already works in multiple languages via Gemini's native multilingual understanding; translating the UI itself is a straightforward follow-on
 - **Live Census/NFHS/data.gov.in integration** — the seeded per-ward dataset stands in, built to the same shape
 - **Real government-ID SSO for officials** — Firebase email/password stands in; `department`/`constituency` fields already exist on the user record, so swapping the login method later doesn't change the data model
 - **Push notifications** for escalation — currently computed at read time only; a citizen/rep must open the dashboard to see it. Could be added without Cloud Functions by having the officer's status-update action also call a notification-send route directly
-- **Live WhatsApp/SMS/email connectors** — Office Staff can log a complaint received by any of these channels today (tagged with its real `source`), but there's no automated inbox/webhook pulling messages in directly; that integration layer is designed for (the `ComplaintSource` type already lists these channels) but not wired up
 
-Already built despite initially looking out of scope: a **demand hotspot map + priority heatmap** (ward-level, color-coded by severity) — it turned out not to need the Google Maps Platform or any billing at all, just our own seeded ward coordinates rendered as an SVG.
+**What funding unlocks — genuinely needs paid infrastructure, not just engineering time:**
+- **Live WhatsApp/SMS intake** — Office Staff can log a complaint received by any of these channels today (tagged with its real `source`), but automatically receiving them requires a WhatsApp Business API account or SMS gateway (Twilio, Gupshup, MSG91) — business verification plus real per-message billing. The `ComplaintSource` type already lists these channels; funding wires up the pipe, it doesn't redesign it.
+- **Production-scale infrastructure** — Firebase Blaze, a paid Gemini quota, and dedicated hosting once real citizen volume (not a hackathon demo) starts hitting today's free-tier ceilings.
+
+Already built despite initially looking out of scope: a **demand hotspot map + priority heatmap** (ward-level, color-coded by severity) — it turned out not to need the Google Maps Platform or any billing at all, just our own seeded ward coordinates rendered as an SVG. Also built further than planned: **nationwide ward/state coverage** (all 28 states + 8 union territories, 75 wards) instead of just the original 3 pilot states.
 
 ## Testing
 
