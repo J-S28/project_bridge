@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+import { generateWithFallback } from "@/lib/geminiFallback";
 
 interface InsightRequest {
   scopeLabel: string;
@@ -13,8 +11,6 @@ interface InsightRequest {
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as InsightRequest;
   const { scopeLabel, currentPeriodCounts, previousPeriodCounts, topSubcategories } = body;
-
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const prompt = `You are writing a short analytics narrative for an elected representative's \
 dashboard, covering civic complaints in ${scopeLabel}.
@@ -30,7 +26,7 @@ markdown formatting, headings, or bullet points — plain prose only. If there i
 for a meaningful comparison, say so plainly instead of inventing a trend.`;
 
   try {
-    const result = await model.generateContent(prompt);
+    const result = await generateWithFallback("gemini-2.5-flash", undefined, prompt);
     const insight = result.response.text().trim();
     return NextResponse.json({ insight });
   } catch (err) {

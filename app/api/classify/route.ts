@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI, SchemaType, type Schema } from "@google/generative-ai";
+import { SchemaType, type Schema } from "@google/generative-ai";
 import { DEPARTMENTS } from "@/lib/departments";
+import { generateWithFallback } from "@/lib/geminiFallback";
 import type { AIClassification } from "@/lib/types";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 interface NearbyComplaint {
   id: string;
@@ -63,14 +62,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing complaint text" }, { status: 400 });
   }
 
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
-    generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema,
-    },
-  });
-
   const nearbyBlock =
     nearbyComplaints && nearbyComplaints.length > 0
       ? `\n\nHere are other open complaints already filed in this same ward in the last 30 days:\n${nearbyComplaints
@@ -103,7 +94,11 @@ ${text}
 """`;
 
   try {
-    const result = await model.generateContent(prompt);
+    const result = await generateWithFallback(
+      "gemini-2.5-flash",
+      { responseMimeType: "application/json", responseSchema },
+      prompt
+    );
     const classification = JSON.parse(result.response.text()) as AIClassification & {
       duplicateOfId?: string;
     };
