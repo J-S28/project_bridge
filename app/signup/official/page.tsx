@@ -15,9 +15,12 @@ import {
   type StateName,
   type MPConstituency,
 } from "@/lib/wards";
-import type { AppUser, Role } from "@/lib/types";
+import type { AppUser, OfficeType, Role } from "@/lib/types";
 
-type OfficialType = Extract<Role, "officer" | "department_head" | "mla" | "mp">;
+type OfficialType = Extract<
+  Role,
+  "officer" | "department_head" | "mla" | "mp" | "office_staff"
+>;
 
 export default function OfficialSignupPage() {
   const router = useRouter();
@@ -25,6 +28,7 @@ export default function OfficialSignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [officialType, setOfficialType] = useState<OfficialType>("officer");
+  const [officeType, setOfficeType] = useState<OfficeType>("department");
   const [department, setDepartment] = useState(DEPARTMENTS[0]);
   const [state, setState] = useState<StateName>(STATES[0]);
   const [ward, setWard] = useState(WARDS_BY_STATE[STATES[0]][0]);
@@ -39,6 +43,21 @@ export default function OfficialSignupPage() {
     setWard(WARDS_BY_STATE[next][0]);
   }
 
+  // For office_staff, treat their chosen officeType the same as the
+  // matching official role for the purposes of which fields to show.
+  const effectiveType: OfficialType =
+    officialType === "office_staff"
+      ? officeType === "department"
+        ? "officer"
+        : officeType === "mla"
+          ? "mla"
+          : "mp"
+      : officialType;
+
+  const showDepartment = effectiveType === "officer" || effectiveType === "department_head";
+  const showWard = effectiveType === "officer" || effectiveType === "mla";
+  const showConstituency = effectiveType === "department_head" || effectiveType === "mp";
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -47,7 +66,7 @@ export default function OfficialSignupPage() {
     try {
       const credential = await createUserWithEmailAndPassword(auth, email, password);
 
-      const usesMPConstituency = officialType === "department_head" || officialType === "mp";
+      const usesMPConstituency = showConstituency;
 
       const appUser: AppUser = {
         uid: credential.user.uid,
@@ -56,17 +75,20 @@ export default function OfficialSignupPage() {
         role: officialType,
         state: usesMPConstituency ? stateForMPConstituency(mpConstituency) : state,
         createdAt: new Date().toISOString(),
-        ...(officialType === "officer"
-          ? { department, constituency: ward }
-          : officialType === "department_head"
-            ? { department, constituency: mpConstituency }
-            : officialType === "mla"
-              ? { constituency: ward }
-              : { constituency: mpConstituency }),
+        ...(officialType === "office_staff" ? { officeType } : {}),
+        ...(showDepartment ? { department } : {}),
+        ...(showWard ? { constituency: ward } : {}),
+        ...(showConstituency ? { constituency: mpConstituency } : {}),
       };
 
       await setDoc(doc(db, "users", credential.user.uid), appUser);
-      router.push(officialType === "department_head" ? "/department-head" : `/${officialType}`);
+      router.push(
+        officialType === "department_head"
+          ? "/department-head"
+          : officialType === "office_staff"
+            ? "/intake"
+            : `/${officialType}`
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed.");
     } finally {
@@ -126,10 +148,26 @@ export default function OfficialSignupPage() {
             <option value="department_head">Department Head</option>
             <option value="mla">MLA</option>
             <option value="mp">MP</option>
+            <option value="office_staff">Office Staff</option>
           </select>
         </label>
 
-        {(officialType === "officer" || officialType === "department_head") && (
+        {officialType === "office_staff" && (
+          <label className="flex flex-col gap-1 text-sm">
+            Attached to
+            <select
+              value={officeType}
+              onChange={(e) => setOfficeType(e.target.value as OfficeType)}
+              className="rounded-md border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900"
+            >
+              <option value="department">Department Office</option>
+              <option value="mla">MLA Office</option>
+              <option value="mp">MP Office</option>
+            </select>
+          </label>
+        )}
+
+        {showDepartment && (
           <label className="flex flex-col gap-1 text-sm">
             Department
             <select
@@ -146,7 +184,7 @@ export default function OfficialSignupPage() {
           </label>
         )}
 
-        {(officialType === "officer" || officialType === "mla") && (
+        {showWard && (
           <label className="flex flex-col gap-1 text-sm">
             State
             <select
@@ -163,7 +201,7 @@ export default function OfficialSignupPage() {
           </label>
         )}
 
-        {(officialType === "officer" || officialType === "mla") && (
+        {showWard && (
           <label className="flex flex-col gap-1 text-sm">
             Ward
             <select
@@ -180,7 +218,7 @@ export default function OfficialSignupPage() {
           </label>
         )}
 
-        {(officialType === "department_head" || officialType === "mp") && (
+        {showConstituency && (
           <label className="flex flex-col gap-1 text-sm">
             Constituency
             <select

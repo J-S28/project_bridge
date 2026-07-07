@@ -10,6 +10,8 @@ import { DepartmentBreakdownChart } from "@/components/DepartmentBreakdownChart"
 import { EscalatedSection } from "@/components/EscalatedSection";
 import { ComplaintListSection } from "@/components/ComplaintListSection";
 import { PriorityRankingPanel } from "@/components/PriorityRankingPanel";
+import { ReportCountBadge } from "@/components/ReportCountBadge";
+import { HotspotMap } from "@/components/HotspotMap";
 import { useAIInsight } from "@/lib/useAIInsight";
 import { wardsInMPConstituency } from "@/lib/wards";
 import { computeEscalationLevel } from "@/lib/escalation";
@@ -135,6 +137,13 @@ function MpDashboardContent() {
 
         <div className="mt-6">
           <h2 className="mb-2 text-sm font-medium text-neutral-500">
+            Demand hotspots
+          </h2>
+          <HotspotMap complaints={complaints} wards={wards} />
+        </div>
+
+        <div className="mt-6">
+          <h2 className="mb-2 text-sm font-medium text-neutral-500">
             Ward-by-ward comparison
           </h2>
           <WardComparisonTable complaints={complaints} wards={wards} />
@@ -168,8 +177,9 @@ function MpDashboardContent() {
                 className="flex flex-col gap-1 rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30"
               >
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                  <span className="flex items-center gap-2 font-medium uppercase tracking-wide text-amber-700 dark:text-amber-400">
                     {c.status}
+                    <ReportCountBadge reportCount={c.reportCount} />
                   </span>
                   <span className="text-amber-700 dark:text-amber-400">
                     {c.location.ward}

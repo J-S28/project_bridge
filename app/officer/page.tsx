@@ -10,6 +10,8 @@ import { compressImageToDataUrl } from "@/lib/compressImage";
 import { OFFICER_NEXT_STATUSES } from "@/lib/statusTransitions";
 import { updateComplaintStatus } from "@/lib/updateComplaintStatus";
 import { ComplaintLocation } from "@/components/ComplaintLocation";
+import { ReportCountBadge } from "@/components/ReportCountBadge";
+import { SourceTag } from "@/components/SourceTag";
 import type { Complaint, Status } from "@/lib/types";
 
 function OfficerComplaintCard({ complaint }: { complaint: Complaint }) {
@@ -64,8 +66,10 @@ function OfficerComplaintCard({ complaint }: { complaint: Complaint }) {
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+        <span className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
           {complaint.status}
+          <ReportCountBadge reportCount={complaint.reportCount} />
+          <SourceTag complaint={complaint} />
         </span>
         <span className="text-xs text-neutral-500">{complaint.ai.priority}</span>
       </div>

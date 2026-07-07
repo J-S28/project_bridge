@@ -1,4 +1,22 @@
-export type Role = "citizen" | "officer" | "department_head" | "mla" | "mp";
+export type Role =
+  | "citizen"
+  | "officer"
+  | "department_head"
+  | "mla"
+  | "mp"
+  | "office_staff";
+
+export type OfficeType = "mp" | "mla" | "department";
+
+export type ComplaintSource =
+  | "Citizen App"
+  | "Public Meeting"
+  | "Walk-in"
+  | "Letter"
+  | "Phone Call"
+  | "Email"
+  | "WhatsApp"
+  | "Existing Government Portal";
 
 export type Department =
   | "Roads & Infrastructure"
@@ -15,9 +33,10 @@ export interface AppUser {
   email: string;
   name: string;
   role: Role;
-  department?: Department; // officer/department_head
-  state?: string; // officer/department_head/mla/mp
+  department?: Department; // officer/department_head/office_staff (if officeType "department")
+  state?: string; // officer/department_head/mla/mp/office_staff
   constituency?: string; // officer/mla: ward name; department_head/mp: constituency name
+  officeType?: OfficeType; // office_staff only — which office they're attached to
   createdAt: string;
 }
 
@@ -83,4 +102,19 @@ export interface Complaint {
   updatedAt: string;
   citizenRating?: number;
   citizenFeedback?: string;
+  // Duplicate consolidation: every complaint's clusterId points at the
+  // canonical complaint's own id (itself, for the canonical one). A
+  // confident duplicate never gets its own document — instead the
+  // canonical complaint's reportCount/reportedByCitizenIds are updated.
+  clusterId: string;
+  reportCount: number;
+  reportedByCitizenIds: string[];
+  // Multi-channel intake: how this complaint reached the platform, and (for
+  // office-staff-logged ones) who logged it and any citizen contact details
+  // they took down.
+  source: ComplaintSource;
+  loggedByRole?: Role;
+  loggedByName?: string;
+  reportedCitizenName?: string;
+  reportedCitizenPhone?: string;
 }

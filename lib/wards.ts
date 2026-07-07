@@ -47,7 +47,7 @@ export function stateForMPConstituency(constituency: string): StateName {
 
 // Approximate real-world centers for each ward, used only to auto-match a
 // citizen's GPS location to the nearest demo ward (no Geocoding API needed).
-const WARD_COORDS: Record<string, { lat: number; lng: number }> = {
+export const WARD_COORDS: Record<string, { lat: number; lng: number }> = {
   Malkajgiri: { lat: 17.4585, lng: 78.5063 },
   Uppal: { lat: 17.4009, lng: 78.5602 },
   Kapra: { lat: 17.4667, lng: 78.5667 },

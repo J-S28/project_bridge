@@ -1,4 +1,5 @@
 import { ComplaintLocation } from "@/components/ComplaintLocation";
+import { ReportCountBadge } from "@/components/ReportCountBadge";
 import { computeEscalationLevel } from "@/lib/escalation";
 import type { Complaint } from "@/lib/types";
 
@@ -7,8 +8,9 @@ function EscalatedComplaintCard({ complaint }: { complaint: Complaint }) {
   return (
     <div className="flex flex-col gap-1 rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30">
       <div className="flex items-center justify-between text-xs">
-        <span className="font-medium uppercase tracking-wide text-amber-700 dark:text-amber-400">
+        <span className="flex items-center gap-2 font-medium uppercase tracking-wide text-amber-700 dark:text-amber-400">
           {complaint.status}
+          <ReportCountBadge reportCount={complaint.reportCount} />
         </span>
         <span className="text-amber-700 dark:text-amber-400">
           {complaint.ai.escalateToRepresentative

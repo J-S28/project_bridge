@@ -11,6 +11,7 @@ const HOME_BY_ROLE: Record<Role, string> = {
   department_head: "/department-head",
   mla: "/mla",
   mp: "/mp",
+  office_staff: "/intake",
 };
 
 export function RoleGuard({
