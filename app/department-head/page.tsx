@@ -42,7 +42,7 @@ function DepartmentHeadDashboardContent() {
       <div className="w-full max-w-3xl">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Department Head dashboard</h1>
+            <h1 className="text-2xl font-semibold">Department Executive dashboard</h1>
             <p className="text-sm text-neutral-500">
               {appUser?.name} · {appUser?.department} · {appUser?.constituency},{" "}
               {appUser?.state}

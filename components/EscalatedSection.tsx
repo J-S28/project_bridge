@@ -79,7 +79,7 @@ function EscalatedComplaintCard({ complaint }: { complaint: Complaint }) {
                   : level >= 2
                     ? " at MLA level"
                     : level >= 1
-                      ? " at department head level"
+                      ? " at department executive level"
                       : ""
               }`}
         </span>

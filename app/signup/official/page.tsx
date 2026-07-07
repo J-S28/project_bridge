@@ -145,7 +145,7 @@ export default function OfficialSignupPage() {
             className="rounded-md border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900"
           >
             <option value="officer">Department Officer</option>
-            <option value="department_head">Department Head</option>
+            <option value="department_head">Department Executive</option>
             <option value="mla">MLA</option>
             <option value="mp">MP</option>
             <option value="office_staff">Grievance Intake Officer</option>
