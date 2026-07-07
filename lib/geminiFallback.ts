@@ -2,6 +2,7 @@ import { GoogleGenerativeAI, type Schema } from "@google/generative-ai";
 
 const PRIMARY_KEY = process.env.GEMINI_API_KEY!;
 const BACKUP_KEY = process.env.GEMINI_API_KEY_BACKUP;
+const BACKUP_KEY_2 = process.env.GEMINI_API_KEY_BACKUP2;
 
 type GeminiContent =
   | string
@@ -13,15 +14,17 @@ interface GeminiGenerationConfig {
 }
 
 // Each Google AI Studio project has its own separate free-tier quota. Trying
-// a backup key (a second, independent project) after the primary one fails
-// roughly doubles how much headroom we have before a real request gets
-// refused — at zero cost, since both keys stay on the free tier.
+// each backup key (separate, independent projects) after the primary one
+// fails multiplies how much headroom we have before a real request gets
+// refused — at zero cost, since every key stays on the free tier.
 export async function generateWithFallback(
   modelName: string,
   generationConfig: GeminiGenerationConfig | undefined,
   content: GeminiContent
 ) {
-  const keys = [PRIMARY_KEY, BACKUP_KEY].filter((k): k is string => !!k);
+  const keys = [PRIMARY_KEY, BACKUP_KEY, BACKUP_KEY_2].filter(
+    (k): k is string => !!k
+  );
 
   let lastError: unknown;
   for (const key of keys) {
