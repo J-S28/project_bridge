@@ -38,7 +38,7 @@ Show the landing page — the two role cards (Citizen / Government Official).
 
 > "Citizens aren't the only source. MPs and MLAs also get letters, phone calls, and requests raised in public meetings — so we built a way to bring those into the exact same pipeline."
 
-1. Log in as an office staff account (see `DEMO_LOGINS.md` or sign up fresh via **Government official sign up → Office Staff**).
+1. Log in as an office staff account (see `DEMO_LOGINS.md` or sign up fresh via **Government official sign up → Grievance Intake Officer**).
 2. Click **Register complaint**, pick a **Source** other than Citizen App (e.g. "Letter" or "Public Meeting"), type a short grievance, and run it through the same **Preview AI classification** step.
 3. Point out the read-only note: *"A staff member logs what happened — they can't hand-pick the classification or the priority, same as the citizen flow."*
 4. After confirming, show it landing on the **intake dashboard** with the source tag, then flip to the matching officer's queue and point out the **"Logged by [name]"** line — *"The officer sees exactly where this came from."*

@@ -148,7 +148,7 @@ export default function OfficialSignupPage() {
             <option value="department_head">Department Head</option>
             <option value="mla">MLA</option>
             <option value="mp">MP</option>
-            <option value="office_staff">Office Staff</option>
+            <option value="office_staff">Grievance Intake Officer</option>
           </select>
         </label>
 
