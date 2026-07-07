@@ -2,18 +2,24 @@
 // so officer/citizen routing is demonstrably scoped by area, not just
 // department. Same list BUILD_SPEC.md §5 needs for the seeded per-ward
 // demographic dataset — easy to rename/extend later.
-export const STATES = ["Telangana", "Andhra Pradesh"] as const;
+export const STATES = ["Telangana", "Andhra Pradesh", "Delhi"] as const;
 export type StateName = (typeof STATES)[number];
 
 export const WARDS_BY_STATE: Record<StateName, string[]> = {
   Telangana: ["Malkajgiri", "Uppal", "Kapra"],
   "Andhra Pradesh": ["Mangalagiri", "Tadepalli", "Thullur"],
+  Delhi: ["Karol Bagh", "Chandni Chowk", "Dwarka"],
 };
 
 // Each MP (parliamentary) constituency groups several MLA wards. In real
 // geography these two happen to share a name with their home ward, so the
 // mapping below is deliberately simple for the demo.
-export const MP_CONSTITUENCIES = ["Malkajgiri", "Mangalagiri"] as const;
+export const MP_CONSTITUENCIES = [
+  "Malkajgiri",
+  "Mangalagiri",
+  "Chandni Chowk",
+  "West Delhi",
+] as const;
 export type MPConstituency = (typeof MP_CONSTITUENCIES)[number];
 
 export const MP_CONSTITUENCY_BY_WARD: Record<string, MPConstituency> = {
@@ -23,6 +29,9 @@ export const MP_CONSTITUENCY_BY_WARD: Record<string, MPConstituency> = {
   Mangalagiri: "Mangalagiri",
   Tadepalli: "Mangalagiri",
   Thullur: "Mangalagiri",
+  "Karol Bagh": "Chandni Chowk",
+  "Chandni Chowk": "Chandni Chowk",
+  Dwarka: "West Delhi",
 };
 
 export function wardsInMPConstituency(constituency: string): string[] {
@@ -45,6 +54,9 @@ const WARD_COORDS: Record<string, { lat: number; lng: number }> = {
   Mangalagiri: { lat: 16.4307, lng: 80.5525 },
   Tadepalli: { lat: 16.4823, lng: 80.6003 },
   Thullur: { lat: 16.5074, lng: 80.518 },
+  "Karol Bagh": { lat: 28.6519, lng: 77.1909 },
+  "Chandni Chowk": { lat: 28.6506, lng: 77.2303 },
+  Dwarka: { lat: 28.5921, lng: 77.046 },
 };
 
 function haversineKm(

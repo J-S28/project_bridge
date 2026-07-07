@@ -58,4 +58,25 @@ export const WARD_DEMOGRAPHICS: Record<string, WardDemographics> = {
       "Community Park",
     ],
   },
+  "Karol Bagh": {
+    ward: "Karol Bagh",
+    schoolEnrollment: 5800,
+    distanceToNearestFacilityKm: 2.0,
+    infraGapScore: 35,
+    existingFacilities: ["Primary School", "Government Hospital", "Metro Station", "Market Complex"],
+  },
+  "Chandni Chowk": {
+    ward: "Chandni Chowk",
+    schoolEnrollment: 4600,
+    distanceToNearestFacilityKm: 1.2,
+    infraGapScore: 50,
+    existingFacilities: ["Primary School", "Heritage Market"],
+  },
+  Dwarka: {
+    ward: "Dwarka",
+    schoolEnrollment: 8100,
+    distanceToNearestFacilityKm: 4.3,
+    infraGapScore: 58,
+    existingFacilities: ["Primary School", "Metro Station"],
+  },
 };
