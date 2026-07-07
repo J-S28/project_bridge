@@ -1,7 +1,65 @@
+import { useState } from "react";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
 import { ComplaintLocation } from "@/components/ComplaintLocation";
 import { ReportCountBadge } from "@/components/ReportCountBadge";
+import { RemarksBlock } from "@/components/RemarksBlock";
 import { computeEscalationLevel } from "@/lib/escalation";
+import { canReturnToOfficer } from "@/lib/statusTransitions";
+import { notify } from "@/lib/notifications";
 import type { Complaint } from "@/lib/types";
+
+function ReturnToOfficerButton({ complaint }: { complaint: Complaint }) {
+  const { appUser } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
+
+  if (appUser?.role !== "department_head" || !canReturnToOfficer(complaint.status)) {
+    return null;
+  }
+
+  async function handleClick() {
+    setSubmitting(true);
+    try {
+      const now = new Date().toISOString();
+      await updateDoc(doc(db, "complaints", complaint.id), {
+        status: "Acknowledged",
+        updatedAt: now,
+        history: [
+          ...complaint.history,
+          {
+            status: "Acknowledged",
+            updatedBy: appUser!.uid,
+            updatedAt: now,
+            note: "Returned to officer by Department Executive",
+          },
+        ],
+      });
+      // Best-effort: a notification failure must never make a successful
+      // return-to-officer action look like it failed.
+      notify({
+        complaintId: complaint.id,
+        message: `Case returned to your queue by Department Executive: ${complaint.ai.summary}`,
+        forRole: "officer",
+        department: complaint.ai.department,
+        ward: complaint.location.ward,
+      }).catch(() => {});
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={submitting}
+      onClick={handleClick}
+      className="mt-1 self-start rounded-full border border-amber-400 px-3 py-1 text-xs text-amber-700 disabled:opacity-50 dark:border-amber-700 dark:text-amber-400"
+    >
+      Return to officer
+    </button>
+  );
+}
 
 function EscalatedComplaintCard({ complaint }: { complaint: Complaint }) {
   const level = computeEscalationLevel(complaint);
@@ -34,6 +92,8 @@ function EscalatedComplaintCard({ complaint }: { complaint: Complaint }) {
           : ""}
       </p>
       <ComplaintLocation location={complaint.location} />
+      <ReturnToOfficerButton complaint={complaint} />
+      <RemarksBlock complaint={complaint} />
     </div>
   );
 }

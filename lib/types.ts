@@ -44,10 +44,12 @@ export type Status =
   | "Submitted"
   | "Acknowledged"
   | "In Progress"
+  | "Waiting for Information"
   | "Escalated"
   | "Pending Citizen Confirmation"
   | "Reopened"
   | "Resolved"
+  | "Rejected"
   | "Closed";
 
 export type Priority = "Critical" | "High" | "Medium" | "Low";
@@ -79,6 +81,16 @@ export interface ComplaintHistoryEntry {
   proofImageUrls?: string[];
 }
 
+// Added by a Department Executive, MLA, or MP as they monitor a case — never
+// a status change, just a visible annotation for whoever looks at it next.
+export interface Remark {
+  authorId: string;
+  authorName: string;
+  role: Role;
+  text: string;
+  createdAt: string;
+}
+
 export interface Complaint {
   id: string;
   citizenId: string;
@@ -90,6 +102,7 @@ export interface Complaint {
     lng: number;
     address?: string;
     state?: string;
+    district?: string;
     ward?: string;
     constituencyMLA?: string;
     constituencyMP?: string;
@@ -97,6 +110,7 @@ export interface Complaint {
   ai: AIClassification;
   status: Status;
   history: ComplaintHistoryEntry[];
+  remarks?: Remark[];
   assignedOfficerId?: string;
   createdAt: string;
   updatedAt: string;

@@ -9,6 +9,8 @@ import { useAuth } from "@/context/AuthContext";
 import { RoleGuard } from "@/components/RoleGuard";
 import { updateComplaintStatus } from "@/lib/updateComplaintStatus";
 import { ComplaintLocation } from "@/components/ComplaintLocation";
+import { NotificationBell } from "@/components/NotificationBell";
+import { notify } from "@/lib/notifications";
 import type { Complaint } from "@/lib/types";
 
 function CitizenComplaintCard({ complaint }: { complaint: Complaint }) {
@@ -31,6 +33,17 @@ function CitizenComplaintCard({ complaint }: { complaint: Complaint }) {
         appUser.uid,
         { note: confirmed ? "Citizen confirmed the fix" : "Citizen rejected the fix" }
       );
+      // Best-effort: a notification failure must never make a successful
+      // response look like it failed.
+      notify({
+        complaintId: complaint.id,
+        message: confirmed
+          ? `Citizen confirmed the fix: ${complaint.ai.summary}`
+          : `Citizen reopened the case — not resolved: ${complaint.ai.summary}`,
+        forRole: "officer",
+        department: complaint.ai.department,
+        ward: complaint.location.ward,
+      }).catch(() => {});
     } catch {
       setError("Couldn't record your response. Try again.");
     } finally {
@@ -122,7 +135,10 @@ function CitizenDashboard() {
               {appUser?.name} ({appUser?.email})
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <NotificationBell
+              filter={appUser?.uid ? { forRole: "citizen", citizenId: appUser.uid } : null}
+            />
             <Link
               href="/citizen/submit"
               className="rounded-full bg-foreground px-4 py-2 text-sm text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"

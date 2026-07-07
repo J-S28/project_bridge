@@ -18,7 +18,8 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { RoleGuard } from "@/components/RoleGuard";
 import { compressImageToDataUrl } from "@/lib/compressImage";
-import { MP_CONSTITUENCY_BY_WARD, wardsInMPConstituency } from "@/lib/wards";
+import { MP_CONSTITUENCY_BY_WARD, wardsInMPConstituency, districtForWard } from "@/lib/wards";
+import { notify } from "@/lib/notifications";
 import type { AIClassification, Complaint, ComplaintSource } from "@/lib/types";
 
 const SOURCES: ComplaintSource[] = [
@@ -147,6 +148,7 @@ function RegisterComplaintForm() {
           lat: 0,
           lng: 0,
           state: appUser.state,
+          district: districtForWard(ward),
           ward,
           constituencyMP: MP_CONSTITUENCY_BY_WARD[ward],
           ...(address.trim() ? { address: address.trim() } : {}),
@@ -167,6 +169,15 @@ function RegisterComplaintForm() {
       };
 
       await setDoc(newRef, complaint);
+      // Best-effort: a notification failure must never make a successful
+      // submission look like it failed.
+      notify({
+        complaintId: newRef.id,
+        message: `New ${complaint.type.toLowerCase()} logged via ${source}: ${classification.summary}`,
+        forRole: "officer",
+        department: classification.department,
+        ward,
+      }).catch(() => {});
       setSubmitted(true);
     } catch {
       setError("Couldn't submit this complaint. Try again.");

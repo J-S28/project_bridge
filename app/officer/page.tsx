@@ -12,12 +12,18 @@ import { updateComplaintStatus } from "@/lib/updateComplaintStatus";
 import { ComplaintLocation } from "@/components/ComplaintLocation";
 import { ReportCountBadge } from "@/components/ReportCountBadge";
 import { SourceTag } from "@/components/SourceTag";
+import { NotificationBell } from "@/components/NotificationBell";
+import { notify } from "@/lib/notifications";
 import type { Complaint, Status } from "@/lib/types";
+
+const NOTE_REQUIRED_STATUSES: Status[] = ["Rejected", "Waiting for Information"];
 
 function OfficerComplaintCard({ complaint }: { complaint: Complaint }) {
   const { appUser } = useAuth();
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<Status | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const nextStatuses = OFFICER_NEXT_STATUSES[complaint.status];
@@ -30,10 +36,46 @@ function OfficerComplaintCard({ complaint }: { complaint: Complaint }) {
       return;
     }
 
+    if (NOTE_REQUIRED_STATUSES.includes(next)) {
+      setPendingAction(next);
+      setNoteDraft("");
+      return;
+    }
+
     setUpdating(true);
     setError(null);
     try {
       await updateComplaintStatus(complaint, next, appUser.uid);
+      await notifyCitizen(next);
+    } catch {
+      setError("Couldn't update status. Try again.");
+    } finally {
+      setUpdating(false);
+    }
+  }
+
+  // Best-effort: a notification failure must never make a successful
+  // status update look like it failed.
+  async function notifyCitizen(status: Status) {
+    await notify({
+      complaintId: complaint.id,
+      message: `Your complaint status changed to "${status}": ${complaint.ai.summary}`,
+      forRole: "citizen",
+      citizenId: complaint.citizenId,
+    }).catch(() => {});
+  }
+
+  async function submitNotedAction() {
+    if (!appUser || !pendingAction || !noteDraft.trim()) return;
+    setUpdating(true);
+    setError(null);
+    try {
+      await updateComplaintStatus(complaint, pendingAction, appUser.uid, {
+        note: noteDraft.trim(),
+      });
+      await notifyCitizen(pendingAction);
+      setPendingAction(null);
+      setNoteDraft("");
     } catch {
       setError("Couldn't update status. Try again.");
     } finally {
@@ -56,6 +98,7 @@ function OfficerComplaintCard({ complaint }: { complaint: Complaint }) {
         appUser.uid,
         { proofImageUrls: [dataUrl] }
       );
+      await notifyCitizen("Pending Citizen Confirmation");
     } catch {
       setError("Couldn't attach proof photo. Try again.");
     } finally {
@@ -95,7 +138,11 @@ function OfficerComplaintCard({ complaint }: { complaint: Complaint }) {
             >
               {next === "Pending Citizen Confirmation"
                 ? "Mark done (attach proof photo)"
-                : `Mark ${next}`}
+                : next === "Rejected"
+                  ? "Reject (with reason)"
+                  : next === "Waiting for Information"
+                    ? "Request more info"
+                    : `Mark ${next}`}
             </button>
           ))}
           <input
@@ -105,6 +152,40 @@ function OfficerComplaintCard({ complaint }: { complaint: Complaint }) {
             onChange={handleProofPhoto}
             className="hidden"
           />
+        </div>
+      )}
+
+      {pendingAction && (
+        <div className="mt-2 flex flex-col gap-2 rounded-lg border border-neutral-300 p-3 dark:border-neutral-700">
+          <label className="text-xs font-medium text-neutral-500">
+            {pendingAction === "Rejected"
+              ? "Reason for rejecting this complaint (required)"
+              : "What information is needed from the citizen? (required)"}
+          </label>
+          <textarea
+            value={noteDraft}
+            onChange={(e) => setNoteDraft(e.target.value)}
+            rows={2}
+            className="rounded-md border border-neutral-300 bg-transparent p-2 text-sm dark:border-neutral-700"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={updating || !noteDraft.trim()}
+              onClick={submitNotedAction}
+              className="rounded-full bg-foreground px-3 py-1.5 text-xs text-background disabled:opacity-50"
+            >
+              Confirm
+            </button>
+            <button
+              type="button"
+              disabled={updating}
+              onClick={() => setPendingAction(null)}
+              className="rounded-full border border-neutral-300 px-3 py-1.5 text-xs dark:border-neutral-700"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -149,15 +230,24 @@ function OfficerDashboard() {
               , {appUser?.state}
             </p>
           </div>
-          <button
-            onClick={async () => {
-              await logout();
-              router.push("/login");
-            }}
-            className="rounded-full border border-neutral-300 px-4 py-2 text-sm dark:border-neutral-700"
-          >
-            Log out
-          </button>
+          <div className="flex items-center gap-2">
+            <NotificationBell
+              filter={
+                appUser?.department && appUser?.constituency
+                  ? { forRole: "officer", department: appUser.department, ward: appUser.constituency }
+                  : null
+              }
+            />
+            <button
+              onClick={async () => {
+                await logout();
+                router.push("/login");
+              }}
+              className="rounded-full border border-neutral-300 px-4 py-2 text-sm dark:border-neutral-700"
+            >
+              Log out
+            </button>
+          </div>
         </div>
 
         <div className="mt-6 flex flex-col gap-3">

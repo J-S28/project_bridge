@@ -15,7 +15,7 @@ const ESCALATION_THRESHOLD_HOURS: Record<Priority, number> = {
 // the chain purely because time has passed.
 export function computeEscalationLevel(complaint: Complaint): EscalationLevel {
   if (
-    ["Resolved", "Closed", "Pending Citizen Confirmation"].includes(
+    ["Resolved", "Closed", "Rejected", "Pending Citizen Confirmation"].includes(
       complaint.status
     )
   ) {

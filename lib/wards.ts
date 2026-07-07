@@ -215,6 +215,27 @@ export function stateForMPConstituency(constituency: string): StateName {
   return STATES.find((s) => WARDS_BY_STATE[s].includes(firstWard))!;
 }
 
+// Real district names for the 3 originally-seeded states; every other ward
+// defaults to "<constituency> District", the same simplification already
+// used for MP constituencies themselves.
+const DISTRICT_OVERRIDES: Record<string, string> = {
+  Malkajgiri: "Medchal–Malkajgiri District",
+  Uppal: "Medchal–Malkajgiri District",
+  Kapra: "Medchal–Malkajgiri District",
+  Mangalagiri: "Guntur District",
+  Tadepalli: "Guntur District",
+  Thullur: "Guntur District",
+  "Karol Bagh": "Central Delhi District",
+  "Chandni Chowk": "Central Delhi District",
+  Dwarka: "South West Delhi District",
+};
+
+export function districtForWard(ward: string): string {
+  return (
+    DISTRICT_OVERRIDES[ward] ?? `${MP_CONSTITUENCY_BY_WARD[ward] ?? ward} District`
+  );
+}
+
 // Approximate real-world centers for each ward, used only to auto-match a
 // citizen's GPS location to the nearest demo ward (no Geocoding API needed).
 export const WARD_COORDS: Record<string, { lat: number; lng: number }> = {

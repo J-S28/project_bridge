@@ -31,20 +31,22 @@ Citizens report civic issues in plain language — by typing or by **speaking in
 | Role | Scope | Sees |
 |---|---|---|
 | **Citizen** | themselves | their own submitted complaints; confirms/reopens resolved ones |
-| **Office Staff** | attached to a department/MLA/MP office | logs grievances from letters, phone calls, meetings, and walk-ins into the same pipeline; sees what they've logged |
-| **Officer** | one department, one ward | that ward's complaints for their department; restricted status buttons |
-| **Department Head** | one department, one MP constituency (all wards under it) | cases stuck past the officer's SLA, before MLA/MP see them |
-| **MLA** | one ward | department breakdown, priority heatmap, AI insight, priority ranking, escalated cases (level ≥ 2), for their ward |
-| **MP** | one constituency (multiple wards) | same as MLA but constituency-wide, plus a ward-by-ward comparison table, a demand hotspot map, and a dedicated "needs funding/infra decision" queue |
+| **Office Staff** | attached to a department/MLA/MP office | logs grievances from letters, phone calls, meetings, and walk-ins into the same pipeline; sees what they've logged. Not an approval authority — can't approve, reject, escalate, or hand-pick a department; AI does the classification and routing |
+| **Officer** | one department, one ward | that ward's complaints for their department; restricted status buttons, including rejecting an invalid complaint (with a reason) or marking it waiting on more information from the citizen |
+| **Department Head** ("Department Executive") | one department, one MP constituency (all wards under it) | cases stuck past the officer's SLA, before MLA/MP see them; can add a remark or hand a stuck case back to the officer's active queue — monitors and reassigns, doesn't resolve cases themselves |
+| **MLA** | one ward | department breakdown, priority heatmap, AI insight, priority ranking, escalated cases (level ≥ 2), for their ward; can add remarks. Monitors, doesn't resolve |
+| **MP** | one constituency (multiple wards) | same as MLA but constituency-wide, plus a ward-by-ward comparison table, a demand hotspot map, and a dedicated "needs funding/infra decision" queue; can add remarks. Monitors, doesn't resolve |
 
 Escalation is **computed at read time**, not stored or cron-driven — a pure function of how long a complaint has sat since its last update versus a priority-based threshold (Critical: 24h, High: 72h, Medium: 7 days, Low: 14 days). See [`lib/escalation.ts`](./lib/escalation.ts). This is layered with a second, independent signal — `ai.escalateToRepresentative`, decided by Gemini at classification time, for issues that need budget/capital infrastructure regardless of how long they've been open.
+
+Officer statuses: `Submitted → Acknowledged → In Progress → Pending Citizen Confirmation → Closed`, with two side branches — `Waiting for Information` (officer needs more from the citizen; still subject to escalation, so it can't be used to dodge the SLA clock) and `Rejected` (with a mandatory reason, for invalid complaints). See [`lib/statusTransitions.ts`](./lib/statusTransitions.ts).
 
 ## Data model
 
 Core types live in [`lib/types.ts`](./lib/types.ts):
 
 - **`AppUser`** — `role` (`citizen | officer | department_head | mla | mp | office_staff`), plus `department`/`state`/`constituency`/`officeType` depending on role
-- **`Complaint`** — citizen's raw text, `type` (`Grievance` | `Suggestion`), `location` (lat/lng, state, ward, `constituencyMP`), the Gemini-produced `ai` classification, `status`, a full `history` array of status transitions (including officer proof photos), `source` (`Citizen App | Letter | Phone Call | Public Meeting | Walk-in | Email | WhatsApp | Existing Government Portal`), and consolidation fields `clusterId` / `reportCount` / `reportedByCitizenIds` for merged duplicates
+- **`Complaint`** — citizen's raw text, `type` (`Grievance` | `Suggestion`), `location` (lat/lng, state, `district`, ward, `constituencyMP`), the Gemini-produced `ai` classification, `status`, a full `history` array of status transitions (including officer proof photos and rejection/waiting-for-info reasons), an optional `remarks` array (Department Executive/MLA/MP annotations — never a status change), `source` (`Citizen App | Letter | Phone Call | Public Meeting | Walk-in | Email | WhatsApp | Existing Government Portal`), and consolidation fields `clusterId` / `reportCount` / `reportedByCitizenIds` for merged duplicates
 - **`AIClassification`** — department, category/subcategory, priority, sentiment, a ≤25-word summary, `escalateToRepresentative` + reason, confidence, `duplicateOfId` when Gemini matches an existing nearby open complaint
 
 Firestore security rules (`firestore.rules`) enforce the hierarchy server-side, not just in the UI — e.g. an officer's `update` is rejected outright if they try to set `status: "Closed"`; only a citizen's own `isOwnCitizenComplaint()` branch permits that.
@@ -61,6 +63,10 @@ Four server-side routes call Gemini (never from the browser, so the API key stay
 | `/api/priority-ranking` | Given citizen suggestion counts per ward/category + seeded demographic data, ranks the top 3-5 development priorities with a one-line justification each — **the actual core ask of the brief** |
 
 `/api/insight` and `/api/priority-ranking` results are **cached in Firestore** (`lib/dashboardCache.ts`), keyed by scope + complaint count — a dashboard only calls Gemini again if the underlying complaint data actually changed since the last visit, not on every page load. This was added specifically to protect the Gemini free tier's request-count ceiling, but it's also just the correct behavior (no point regenerating an unchanged insight).
+
+## Notifications
+
+An in-app notification feed (`lib/notifications.ts`, `lib/useNotifications.ts`, `components/NotificationBell.tsx`) — a bell icon with an unread count, backed by a Firestore `notifications` collection scoped the same way complaints already are (by department+ward for officers, by citizenId for citizens). It fires on real events only: new complaint submitted, status changed, a remark added, a case returned to an officer. There's deliberately no time-based "SLA nearing expiry" alert — that would need a background scheduler (Cloud Scheduler on Blaze, or Vercel Cron beyond its free-tier granularity), which is exactly the paid-infra tradeoff called out below. Real push notifications (mobile/browser, outside the app) are the same story — this stays as an in-app feed instead.
 
 ## Sample / seed database
 
@@ -107,13 +113,13 @@ Named here on purpose — scoped honesty was a deliberate choice, not an oversig
 - **Full multilingual translation** (Cloud Translation API) — voice input already works in multiple languages via Gemini's native multilingual understanding; translating the UI itself is a straightforward follow-on
 - **Live Census/NFHS/data.gov.in integration** — the seeded per-ward dataset stands in, built to the same shape
 - **Real government-ID SSO for officials** — Firebase email/password stands in; `department`/`constituency` fields already exist on the user record, so swapping the login method later doesn't change the data model
-- **Push notifications** for escalation — currently computed at read time only; a citizen/rep must open the dashboard to see it. Could be added without Cloud Functions by having the officer's status-update action also call a notification-send route directly
+- **Time-based SLA-nearing-expiry alerts** — the in-app notification feed (below) covers event-driven notifications; a genuinely time-based "this is about to breach SLA" alert needs a background scheduler, deliberately left out (see Notifications section)
 
 **What funding unlocks — genuinely needs paid infrastructure, not just engineering time:**
 - **Live WhatsApp/SMS intake** — Office Staff can log a complaint received by any of these channels today (tagged with its real `source`), but automatically receiving them requires a WhatsApp Business API account or SMS gateway (Twilio, Gupshup, MSG91) — business verification plus real per-message billing. The `ComplaintSource` type already lists these channels; funding wires up the pipe, it doesn't redesign it.
 - **Production-scale infrastructure** — Firebase Blaze, a paid Gemini quota, and dedicated hosting once real citizen volume (not a hackathon demo) starts hitting today's free-tier ceilings.
 
-Already built despite initially looking out of scope: a **demand hotspot map + priority heatmap** (ward-level, color-coded by severity) — it turned out not to need the Google Maps Platform or any billing at all, just our own seeded ward coordinates rendered as an SVG. Also built further than planned: **nationwide ward/state coverage** (all 28 states + 8 union territories, 75 wards) instead of just the original 3 pilot states.
+Already built despite initially looking out of scope: a **demand hotspot map + priority heatmap** (ward-level, color-coded by severity) — it turned out not to need the Google Maps Platform or any billing at all, just our own seeded ward coordinates rendered as an SVG. Also built further than planned: **nationwide ward/state coverage** (all 28 states + 8 union territories, 75 wards) instead of just the original 3 pilot states, and an **in-app notification feed** in place of push.
 
 ## Testing
 

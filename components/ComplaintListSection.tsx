@@ -1,6 +1,7 @@
 import { ComplaintLocation } from "@/components/ComplaintLocation";
 import { ReportCountBadge } from "@/components/ReportCountBadge";
 import { SourceTag } from "@/components/SourceTag";
+import { RemarksBlock } from "@/components/RemarksBlock";
 import type { Complaint } from "@/lib/types";
 
 export function ComplaintListSection({
@@ -39,6 +40,7 @@ export function ComplaintListSection({
             </div>
             <p className="text-sm">{c.ai.summary}</p>
             <ComplaintLocation location={c.location} />
+            <RemarksBlock complaint={c} />
           </div>
         ))}
       </div>
